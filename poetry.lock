@@ -2818,7 +2818,7 @@ watchmedo = ["PyYAML (>=3.10)"]
 name = "wrapt"
 version = "1.15.0"
 description = "Module for decorators, wrappers and monkey patching."
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 files = [
     {file = "wrapt-1.15.0-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:ca1cccf838cd28d5a0883b342474c630ac48cac5df0ee6eacc9c7290f76b11c1"},
@@ -2939,4 +2939,4 @@ validation = ["fastjsonschema"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7.4"
-content-hash = "239f74f943a7ef937c487aea2dfce68bf208e01d7c80ef84b2392217f8fb8ff0"
+content-hash = "32a1719bc8cfee9aaea57828537352fd10768431e9b647df583b3e8ee216e7f9"

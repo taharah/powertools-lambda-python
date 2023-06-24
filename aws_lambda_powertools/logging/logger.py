@@ -22,6 +22,7 @@ from typing import (
 )
 
 import jmespath
+import wrapt
 
 from aws_lambda_powertools.logging import compat
 
@@ -418,8 +419,9 @@ class Logger:
             env=os.getenv(constants.LOGGER_LOG_EVENT_ENV, "false"), choice=log_event
         )
 
-        @functools.wraps(lambda_handler)
-        def decorate(event, context, *args, **kwargs):
+        @wrapt.decorator
+        def decorate(wrapped, instance, args, kwargs):
+            event, context, *args = args
             lambda_context = build_lambda_context_model(context)
             cold_start = _is_cold_start()
 
@@ -435,9 +437,9 @@ class Logger:
                 logger.debug("Event received")
                 self.info(extract_event_from_common_models(event))
 
-            return lambda_handler(event, context, *args, **kwargs)
+            return wrapped(event, context, *args, **kwargs)
 
-        return decorate
+        return decorate(lambda_handler)
 
     def info(
         self,

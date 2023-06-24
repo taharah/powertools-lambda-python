@@ -10,6 +10,8 @@ from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Callable, Dict, Generator, List, Optional, Union
 
+import wrapt
+
 from ..shared import constants
 from ..shared.functions import resolve_env_var_choice
 from .exceptions import (
@@ -403,12 +405,13 @@ class MetricManager:
                 default_dimensions=default_dimensions,
             )
 
-        @functools.wraps(lambda_handler)
-        def decorate(event, context):
+        @wrapt.decorator
+        def decorate(wrapped, instance, args, kwargs):
+            event, context, *args = args
             try:
                 if default_dimensions:
                     self.set_default_dimensions(**default_dimensions)
-                response = lambda_handler(event, context)
+                response = wrapped(event, context)
                 if capture_cold_start_metric:
                     self._add_cold_start_metric(context=context)
             finally:
@@ -416,7 +419,7 @@ class MetricManager:
 
             return response
 
-        return decorate
+        return decorate(lambda_handler)
 
     def _extract_metric_resolution_value(self, resolution: Union[int, MetricResolution]) -> int:
         """Return metric value from metric unit whether that's str or MetricResolution enum

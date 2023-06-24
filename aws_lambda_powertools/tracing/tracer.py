@@ -7,6 +7,8 @@ import numbers
 import os
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union, cast, overload
 
+import wrapt
+
 from ..shared import constants
 from ..shared.functions import resolve_env_var_choice, resolve_truthy_env_var_choice
 from ..shared.lazy_import import LazyLoader
@@ -297,12 +299,13 @@ class Tracer:
             env=os.getenv(constants.TRACER_CAPTURE_ERROR_ENV, "true"), choice=capture_error
         )
 
-        @functools.wraps(lambda_handler)
-        def decorate(event, context, **kwargs):
+        @wrapt.decorator
+        def decorate(wrapped, instance, args, kwargs):
+            event, context, *args = args
             with self.provider.in_subsegment(name=f"## {lambda_handler_name}") as subsegment:
                 try:
                     logger.debug("Calling lambda handler")
-                    response = lambda_handler(event, context, **kwargs)
+                    response = wrapped(event, context, **kwargs)
                     logger.debug("Received lambda handler response successfully")
                     self._add_response_as_metadata(
                         method_name=lambda_handler_name,
@@ -330,7 +333,7 @@ class Tracer:
 
                 return response
 
-        return decorate
+        return decorate(lambda_handler)
 
     # see #465
     @overload

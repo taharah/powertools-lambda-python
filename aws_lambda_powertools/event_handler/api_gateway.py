@@ -23,6 +23,8 @@ from typing import (
     Union,
 )
 
+import wrapt
+
 from aws_lambda_powertools.event_handler import content_types
 from aws_lambda_powertools.event_handler.exceptions import NotFoundError, ServiceError
 from aws_lambda_powertools.shared.cookies import Cookie
@@ -543,7 +545,8 @@ class ApiGatewayResolver(BaseRouter):
     ):
         """Route decorator includes parameter `method`"""
 
-        def register_resolver(func: Callable):
+        @wrapt.decorator
+        def register_resolver(wrapped, instance, args, kwargs):
             methods = (method,) if isinstance(method, str) else method
             logger.debug(f"Adding route using rule {rule} and methods: {','.join((m.upper() for m in methods))}")
             if cors is None:
@@ -552,7 +555,7 @@ class ApiGatewayResolver(BaseRouter):
                 cors_enabled = cors
 
             for item in methods:
-                _route = Route(item, self._compile_regex(rule), func, cors_enabled, compress, cache_control)
+                _route = Route(item, self._compile_regex(rule), wrapped, cors_enabled, compress, cache_control)
 
                 # The more specific route wins.
                 # We store dynamic (/studies/{studyid}) and static routes (/studies/fetch) separately.
@@ -572,7 +575,7 @@ class ApiGatewayResolver(BaseRouter):
                 if cors_enabled:
                     logger.debug(f"Registering method {item.upper()} to Allow Methods in CORS")
                     self._cors_methods.add(item.upper())
-            return func
+            return wrapped
 
         return register_resolver
 
@@ -758,13 +761,14 @@ class ApiGatewayResolver(BaseRouter):
         return self.exception_handler(NotFoundError)(func)
 
     def exception_handler(self, exc_class: Union[Type[Exception], List[Type[Exception]]]):
-        def register_exception_handler(func: Callable):
+        @wrapt.decorator
+        def register_exception_handler(wrapped: Callable, instance: Any, args: Any, kwargs: Any):
             if isinstance(exc_class, list):
                 for exp in exc_class:
-                    self._exception_handlers[exp] = func
+                    self._exception_handlers[exp] = wrapped
             else:
-                self._exception_handlers[exc_class] = func
-            return func
+                self._exception_handlers[exc_class] = wrapped
+            return wrapped
 
         return register_exception_handler
 
